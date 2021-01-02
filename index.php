@@ -3,12 +3,12 @@
 /**
  * check if the url has parameters. if not assign a empty array
  */
-$url_params = isset($_SERVER['PATH_INFO']) ? explode('/', $_SERVER['PATH_INFO']) : ["index", "index", ""];
+$url = isset($_SERVER['PATH_INFO']) ? explode('/', $_SERVER['PATH_INFO']) : ["index", "index", ""];
 
 /**
  * Getting the controller name
  */
-$controller = $url[0];
+$controller = strtolower($url[0]);
 
 /**
  * Getting the controller method
@@ -17,36 +17,36 @@ $controller = $url[0];
  */
 $action = isset($url[1]) ? $url[1] : 'index';
 
-// The remain parts are considered as 
-// arguments of the method
-$requestedParams = array_slice($url, 2);
+/**
+ * Getting the rest of the url as parameters
+ */
+$params = array_slice($url, 2);
 
-// Check if controller exists. NB: 
-// You have to do that for the model and the view too
-$ctrlPath = __DIR__ . '/Controllers/' . $requestedController . '_controller.php';
+/**
+ * Check if the controller, model and view files exists
+ */
+$controller_file = __DIR__ . '/Controllers/' . ucfirst($controller) . '_controller.php'; // Index_controller.php
+$model_file = __DIR__ . '/Models/' . ucfirst($controller) . '_model.php'; // Index_model.php
+$view_file = __DIR__ . '/Views/' . $controller . '_view.php'; // index_view.php
 
-if (file_exists($ctrlPath)) {
+/**
+ * Needs all the three files
+ */
+if (file_exists($controller_file) && file_exists($model_file) && file_exists($view_file)) {
 
-    require_once __DIR__ . '/Models/' . $requestedController . '_model.php';
-    require_once __DIR__ . '/Controllers/' . $requestedController . '_controller.php';
-    require_once __DIR__ . '/Views/' . $requestedController . '_view.php';
+    require_once $controller_file;
 
-    $modelName      = ucfirst($requestedController) . 'Model';
-    $controllerName = ucfirst($requestedController) . 'Controller';
-    $viewName       = ucfirst($requestedController) . 'View';
+    $controller = ucfirst($controller);
 
-    $controllerObj  = new $controllerName(new $modelName);
-    $viewObj        = new $viewName($controllerObj, new $modelName);
+    $controllerObj  = new $controller();
 
-    // If there is a method - Second parameter
-    if ($requestedAction != '') {
-        // then we call the method via the view
-        // dynamic call of the view
-        print $viewObj->$requestedAction($requestedParams);
+    if (is_callable(array($controllerObj, $action))) {
+        return print($controllerObj->$action());
     }
-} else {
-    // header('HTTP/1.1 404 Not Found');
-    // die('404 - The file - ' . $ctrlPath . ' - not found');
-    // //require the 404 controller and initiate it
-    // //Display its view
 }
+
+/**
+ * return with error if the requested page not found
+ */
+header('HTTP/1.1 404 Not Found');
+die('404 - Requested page not found');
